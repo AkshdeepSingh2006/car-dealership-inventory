@@ -14,7 +14,7 @@ from app.models import User
 from app.security import hash_password, verify_password
 
 
-class RegistrationRequest(BaseModel):
+class CredentialsRequest(BaseModel):
     email: str
     password: str = Field(min_length=1)
 
@@ -25,6 +25,14 @@ class RegistrationRequest(BaseModel):
         if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
             raise ValueError("Enter a valid email address")
         return email
+
+
+class RegistrationRequest(CredentialsRequest):
+    """Request body for public registration."""
+
+
+class LoginRequest(CredentialsRequest):
+    """Request body for login."""
 
 
 class RegistrationResponse(BaseModel):
@@ -71,7 +79,7 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
             return user
 
     @app.post("/api/auth/login", response_model=TokenResponse)
-    def login(request: RegistrationRequest) -> TokenResponse:
+    def login(request: LoginRequest) -> TokenResponse:
         with Session(get_engine()) as session:
             user = session.scalar(select(User).where(User.email == request.email))
             if user is None or not verify_password(request.password, user.password_hash):
