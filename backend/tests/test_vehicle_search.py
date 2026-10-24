@@ -110,3 +110,24 @@ def test_search_returns_empty_list_for_no_matches(
 
 def test_search_requires_token(client: TestClient) -> None:
     assert client.get("/api/vehicles/search").status_code == 401
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"min_price": -1},
+        {"max_price": -1},
+        {"min_price": 30000, "max_price": 20000},
+        {"min_price": "not-a-number"},
+    ],
+)
+def test_rejects_invalid_price_filters(
+    client: TestClient, user_token: str, params: dict
+) -> None:
+    response = client.get(
+        "/api/vehicles/search",
+        params=params,
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+
+    assert response.status_code == 422
