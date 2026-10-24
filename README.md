@@ -4,7 +4,7 @@ An assessment project for managing a dealership's vehicles and stock. The planne
 
 ## Project status
 
-The backend supports user registration, JWT login, a local first-admin setup command, admin-only vehicle creation, and authenticated vehicle browsing and search. Purchasing and restocking are still planned. See [the development plan](docs/DEVELOPMENT_PLAN.md).
+The backend supports user registration, JWT login, a local first-admin setup command, authenticated vehicle browsing and search, and admin-only vehicle creation, update, and deletion. Purchasing and restocking are still planned. See [the development plan](docs/DEVELOPMENT_PLAN.md).
 
 ## Requirements
 
@@ -32,6 +32,8 @@ The command prompts for the password without putting it in shell history. It ref
 
 Authenticated users can list vehicles with `GET /api/vehicles` and filter with `GET /api/vehicles/search`. Search accepts optional `make`, `model`, `category`, `min_price`, and `max_price` query parameters. Text filters match part of a value without case sensitivity; price bounds are inclusive. Multiple filters combine.
 
+Authenticated users can retrieve one vehicle with `GET /api/vehicles/{id}`. Admins can replace a vehicle's details with `PUT /api/vehicles/{id}` using all five vehicle fields, or remove one with `DELETE /api/vehicles/{id}`. Unknown IDs return `404`. Search rejects negative or reversed price bounds with `422`.
+
 ## Tests
 
 After dependencies are installed, run `python -m pytest` from `backend` and `npm test -- --run` from `frontend`. Database tests will require `car_dealership_test`; they must never point to the development database.
@@ -49,7 +51,9 @@ Foundation checks on 24 October 2026:
 
 Backend check after vehicle creation: `python -m pytest -q` on 25 October 2026 returned **41 passed, 1 dependency deprecation warning**. The foundation checks above remain as the original milestone report.
 
-Latest backend check after first-admin setup, listing, and search: `.\.venv\Scripts\python.exe -m pytest -q --tb=line` on 25 October 2026 returned **53 passed, 1 dependency deprecation warning**.
+Backend check after first-admin setup, listing, and search: `.\.venv\Scripts\python.exe -m pytest -q --tb=line` on 25 October 2026 returned **53 passed, 1 dependency deprecation warning**.
+
+Latest backend check after vehicle details, update, delete, and search validation: `.\.venv\Scripts\python.exe -m pytest -q --tb=short` on 25 October 2026 returned **72 passed, 1 dependency deprecation warning**.
 
 ## Screenshots
 
