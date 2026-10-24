@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth import create_access_token, get_current_user
+from app.auth import create_access_token, require_admin
 from app.database import get_engine
 from app.models import User, Vehicle
 from app.security import hash_password, verify_password
@@ -109,12 +109,13 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
                 access_token=create_access_token(user.id), token_type="bearer"
             )
 
-    @app.post("/api/vehicles", status_code=201, response_model=VehicleResponse)
-    def create_vehicle(
-        request: VehicleCreate, current_user: User = Depends(get_current_user)
-    ) -> Vehicle:
-        if current_user.role != "admin":
-            raise HTTPException(status_code=403, detail="Admin access required")
+    @app.post(
+        "/api/vehicles",
+        status_code=201,
+        response_model=VehicleResponse,
+        dependencies=[Depends(require_admin)],
+    )
+    def create_vehicle(request: VehicleCreate) -> Vehicle:
         with Session(get_engine()) as session:
             vehicle = Vehicle(**request.model_dump())
             session.add(vehicle)
