@@ -2,7 +2,7 @@ import os
 import re
 from decimal import Decimal
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
@@ -127,9 +127,11 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
         make: str | None = None,
         model: str | None = None,
         category: str | None = None,
-        min_price: Decimal | None = None,
-        max_price: Decimal | None = None,
+        min_price: Decimal | None = Query(default=None, ge=0),
+        max_price: Decimal | None = Query(default=None, ge=0),
     ) -> list[Vehicle]:
+        if min_price is not None and max_price is not None and min_price > max_price:
+            raise HTTPException(status_code=422, detail="Minimum price exceeds maximum price")
         query = select(Vehicle)
         for column, value in (
             (Vehicle.make, make),
