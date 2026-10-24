@@ -173,6 +173,19 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
             session.refresh(vehicle)
             return vehicle
 
+    @app.delete(
+        "/api/vehicles/{vehicle_id}",
+        status_code=204,
+        dependencies=[Depends(require_admin)],
+    )
+    def delete_vehicle(vehicle_id: int) -> None:
+        with Session(get_engine()) as session:
+            vehicle = session.get(Vehicle, vehicle_id)
+            if vehicle is None:
+                raise HTTPException(status_code=404, detail="Vehicle not found")
+            session.delete(vehicle)
+            session.commit()
+
     @app.post(
         "/api/vehicles",
         status_code=201,
