@@ -4,12 +4,14 @@ import re
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth import create_access_token
 from app.database import get_engine
 from app.models import User
-from app.security import hash_password
+from app.security import hash_password, verify_password
 
 
 class RegistrationRequest(BaseModel):
@@ -29,6 +31,11 @@ class RegistrationResponse(BaseModel):
     id: int
     email: str
     role: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
 
 
 def create_app(frontend_origin: str | None = None) -> FastAPI:
@@ -62,6 +69,16 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
                 raise HTTPException(status_code=409, detail="Email already registered") from error
             session.refresh(user)
             return user
+
+    @app.post("/api/auth/login", response_model=TokenResponse)
+    def login(request: RegistrationRequest) -> TokenResponse:
+        with Session(get_engine()) as session:
+            user = session.scalar(select(User).where(User.email == request.email))
+            if user is None or not verify_password(request.password, user.password_hash):
+                raise HTTPException(status_code=401, detail="Invalid email or password")
+            return TokenResponse(
+                access_token=create_access_token(user.id), token_type="bearer"
+            )
 
     return app
 
