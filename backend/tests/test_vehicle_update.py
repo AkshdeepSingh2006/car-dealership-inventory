@@ -1,5 +1,7 @@
 """Only admins may replace a vehicle's validated details."""
 
+from decimal import Decimal
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -40,7 +42,10 @@ def test_admin_updates_vehicle_and_change_persists(
     assert response.status_code == 200
     assert response.json()["id"] == vehicle_id
     for field, value in updated_data.items():
-        assert response.json()[field] == value
+        if field == "price":
+            assert Decimal(str(response.json()[field])) == Decimal(str(value))
+        else:
+            assert response.json()[field] == value
     fetched = client.get(
         f"/api/vehicles/{vehicle_id}",
         headers={"Authorization": f"Bearer {user_token}"},

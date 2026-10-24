@@ -157,6 +157,22 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
                 raise HTTPException(status_code=404, detail="Vehicle not found")
             return vehicle
 
+    @app.put(
+        "/api/vehicles/{vehicle_id}",
+        response_model=VehicleResponse,
+        dependencies=[Depends(require_admin)],
+    )
+    def update_vehicle(vehicle_id: int, request: VehicleCreate) -> Vehicle:
+        with Session(get_engine()) as session:
+            vehicle = session.get(Vehicle, vehicle_id)
+            if vehicle is None:
+                raise HTTPException(status_code=404, detail="Vehicle not found")
+            for field, value in request.model_dump().items():
+                setattr(vehicle, field, value)
+            session.commit()
+            session.refresh(vehicle)
+            return vehicle
+
     @app.post(
         "/api/vehicles",
         status_code=201,
