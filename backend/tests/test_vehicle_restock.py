@@ -37,6 +37,20 @@ def test_admin_restocks_zero_stock_vehicle_and_change_persists(
     assert stock(client, user_token, vehicle_id) == 5
 
 
+def test_restock_adds_to_existing_stock(
+    client: TestClient, admin_token: str
+) -> None:
+    created = create_vehicle(client, admin_token, VEHICLE)
+    assert created.status_code == 201
+    vehicle_id = created.json()["id"]
+
+    response = restock(client, admin_token, vehicle_id, {"quantity": 2})
+
+    assert response.status_code == 200
+    assert response.json()["quantity"] == VEHICLE["quantity"] + 2
+    assert stock(client, admin_token, vehicle_id) == VEHICLE["quantity"] + 2
+
+
 @pytest.mark.parametrize(
     "data",
     [{"quantity": 0}, {"quantity": -1}, {"quantity": 1.5}, {"quantity": "many"}, {}],
