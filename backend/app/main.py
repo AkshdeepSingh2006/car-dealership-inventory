@@ -67,6 +67,10 @@ class VehicleResponse(VehicleCreate):
     id: int
 
 
+class RestockRequest(BaseModel):
+    quantity: int = Field(gt=0, strict=True)
+
+
 def create_app(frontend_origin: str | None = None) -> FastAPI:
     app = FastAPI(title="Car Dealership Inventory API")
     allowed_origin = frontend_origin or os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
@@ -221,6 +225,24 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
                 raise HTTPException(status_code=409, detail="Vehicle is out of stock")
             session.commit()
             return session.get(Vehicle, purchased_id)
+
+    @app.post(
+        "/api/vehicles/{vehicle_id}/restock",
+        response_model=VehicleResponse,
+        dependencies=[Depends(require_admin)],
+    )
+    def restock_vehicle(vehicle_id: int, request: RestockRequest) -> Vehicle:
+        with Session(get_engine()) as session:
+            restocked_id = session.scalar(
+                update(Vehicle)
+                .where(Vehicle.id == vehicle_id)
+                .values(quantity=Vehicle.quantity + request.quantity)
+                .returning(Vehicle.id)
+            )
+            if restocked_id is None:
+                raise HTTPException(status_code=404, detail="Vehicle not found")
+            session.commit()
+            return session.get(Vehicle, restocked_id)
 
     return app
 
