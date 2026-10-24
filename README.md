@@ -4,7 +4,7 @@ An assessment project for managing a dealership's vehicles and stock. The planne
 
 ## Project status
 
-The backend supports user registration, JWT login, and admin-only vehicle creation. Vehicle browsing, search, purchasing, and restocking are still planned. See [the development plan](docs/DEVELOPMENT_PLAN.md).
+The backend supports user registration, JWT login, a local first-admin setup command, admin-only vehicle creation, and authenticated vehicle browsing and search. Purchasing and restocking are still planned. See [the development plan](docs/DEVELOPMENT_PLAN.md).
 
 ## Requirements
 
@@ -22,7 +22,15 @@ The backend supports user registration, JWT login, and admin-only vehicle creati
 
 The frontend defaults to `http://localhost:8000` for API requests and runs at `http://localhost:5173`. The backend allows that origin by default.
 
-Public registration creates regular users. The controlled initial-admin setup command is still pending, so admin-only vehicle creation can currently be exercised through the test suite.
+Public registration creates regular users. To create the first admin, set `DATABASE_URL` to your development database in `backend/.env`, then run this once from `backend`:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.admin_setup --email you@example.com
+```
+
+The command prompts for the password without putting it in shell history. It refuses to change an existing user or create a second admin. Do not run it against the test database. The command changes the database, so get approval before running it.
+
+Authenticated users can list vehicles with `GET /api/vehicles` and filter with `GET /api/vehicles/search`. Search accepts optional `make`, `model`, `category`, `min_price`, and `max_price` query parameters. Text filters match part of a value without case sensitivity; price bounds are inclusive. Multiple filters combine.
 
 ## Tests
 
@@ -39,7 +47,9 @@ Foundation checks on 24 October 2026:
 | `npm run build` in `frontend` | TypeScript check and Vite production build passed |
 | `npm audit --audit-level=moderate` in `frontend` | 0 reported vulnerabilities |
 
-Latest backend check after vehicle creation: `python -m pytest -q` on 25 October 2026 returned **41 passed, 1 dependency deprecation warning**. The foundation checks above remain as the original milestone report.
+Backend check after vehicle creation: `python -m pytest -q` on 25 October 2026 returned **41 passed, 1 dependency deprecation warning**. The foundation checks above remain as the original milestone report.
+
+Latest backend check after first-admin setup, listing, and search: `.\.venv\Scripts\python.exe -m pytest -q --tb=line` on 25 October 2026 returned **53 passed, 1 dependency deprecation warning**.
 
 ## Screenshots
 
