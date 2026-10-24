@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth import create_access_token, require_admin
+from app.auth import create_access_token, get_current_user, require_admin
 from app.database import get_engine
 from app.models import User, Vehicle
 from app.security import hash_password, verify_password
@@ -108,6 +108,15 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
             return TokenResponse(
                 access_token=create_access_token(user.id), token_type="bearer"
             )
+
+    @app.get(
+        "/api/vehicles",
+        response_model=list[VehicleResponse],
+        dependencies=[Depends(get_current_user)],
+    )
+    def list_vehicles() -> list[Vehicle]:
+        with Session(get_engine()) as session:
+            return list(session.scalars(select(Vehicle).order_by(Vehicle.id)))
 
     @app.post(
         "/api/vehicles",
