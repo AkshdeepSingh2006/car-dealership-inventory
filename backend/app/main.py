@@ -1,16 +1,17 @@
 import os
 import re
+from decimal import Decimal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth import create_access_token
+from app.auth import create_access_token, get_current_user
 from app.database import get_engine
-from app.models import User
+from app.models import User, Vehicle
 from app.security import hash_password, verify_password
 
 
@@ -44,6 +45,26 @@ class RegistrationResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+
+class VehicleCreate(BaseModel):
+    make: str = Field(min_length=1, max_length=100)
+    model: str = Field(min_length=1, max_length=100)
+    category: str = Field(min_length=1, max_length=100)
+    price: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    quantity: int = Field(ge=0, strict=True)
+
+    @field_validator("make", "model", "category")
+    @classmethod
+    def nonblank_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field cannot be blank")
+        return value
+
+
+class VehicleResponse(VehicleCreate):
+    id: int
 
 
 def create_app(frontend_origin: str | None = None) -> FastAPI:
@@ -87,6 +108,19 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
             return TokenResponse(
                 access_token=create_access_token(user.id), token_type="bearer"
             )
+
+    @app.post("/api/vehicles", status_code=201, response_model=VehicleResponse)
+    def create_vehicle(
+        request: VehicleCreate, current_user: User = Depends(get_current_user)
+    ) -> Vehicle:
+        if current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        with Session(get_engine()) as session:
+            vehicle = Vehicle(**request.model_dump())
+            session.add(vehicle)
+            session.commit()
+            session.refresh(vehicle)
+            return vehicle
 
     return app
 

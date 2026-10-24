@@ -4,7 +4,7 @@ An assessment project for managing a dealership's vehicles and stock. The planne
 
 ## Project status
 
-The backend supports user registration and JWT login. Vehicle and inventory behavior are still planned. See [the development plan](docs/DEVELOPMENT_PLAN.md).
+The backend supports user registration, JWT login, and admin-only vehicle creation. Vehicle browsing, search, purchasing, and restocking are still planned. See [the development plan](docs/DEVELOPMENT_PLAN.md).
 
 ## Requirements
 
@@ -17,10 +17,12 @@ The backend supports user registration and JWT login. Vehicle and inventory beha
 1. In pgAdmin, connect to your PostgreSQL server and create separate `car_dealership_dev` and `car_dealership_test` databases.
 2. Copy `backend/.env.example` to `backend/.env` and fill in your local PostgreSQL username, password, host, and port. Use the development database for `DATABASE_URL` and the test database for `TEST_DATABASE_URL`. Set `JWT_SECRET` to a random secret generated locally, for example with `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Do not commit `backend/.env`.
 3. In `backend`, create a virtual environment, activate it, and run `python -m pip install -e ".[dev]"` after dependency installation is approved.
-4. In `backend`, create the `users` table in each database before running registration or login. For the development database, run `python -c "from app.models import Base; from app.database import get_engine; Base.metadata.create_all(get_engine())"`. For the test database, run `python -c "from dotenv import dotenv_values; from sqlalchemy import create_engine; from app.models import Base; Base.metadata.create_all(create_engine(dotenv_values('.env')['TEST_DATABASE_URL']))"`. Run `uvicorn app.main:app --reload` to start the API.
+4. In `backend`, create the `users` and `vehicles` tables in each database before using the API or running tests. For the development database, run `python -c "from app.models import Base; from app.database import get_engine; Base.metadata.create_all(get_engine())"`. For the test database, run `python -c "from dotenv import dotenv_values; from sqlalchemy import create_engine; from app.models import Base; Base.metadata.create_all(create_engine(dotenv_values('.env')['TEST_DATABASE_URL']))"`. Run `uvicorn app.main:app --reload` to start the API.
 5. Copy `frontend/.env.example` to `frontend/.env`. In `frontend`, run `npm install` after dependency installation is approved, then `npm run dev`.
 
 The frontend defaults to `http://localhost:8000` for API requests and runs at `http://localhost:5173`. The backend allows that origin by default.
+
+Public registration creates regular users. The controlled initial-admin setup command is still pending, so admin-only vehicle creation can currently be exercised through the test suite.
 
 ## Tests
 
@@ -37,7 +39,7 @@ Foundation checks on 24 October 2026:
 | `npm run build` in `frontend` | TypeScript check and Vite production build passed |
 | `npm audit --audit-level=moderate` in `frontend` | 0 reported vulnerabilities |
 
-Latest backend check after login implementation: `python -m pytest -q` on 24 October 2026 returned **21 passed, 1 dependency deprecation warning**. The foundation checks above remain as the original milestone report.
+Latest backend check after vehicle creation: `python -m pytest -q` on 25 October 2026 returned **41 passed, 1 dependency deprecation warning**. The foundation checks above remain as the original milestone report.
 
 ## Screenshots
 
@@ -49,5 +51,5 @@ Codex helped plan the architecture and create the initial project foundation. As
 
 ## Repository
 
-Public repository URL: pending publication by the project owner.
+Public repository URL: https://github.com/AkshdeepSingh2006/car-dealership-inventory
 
