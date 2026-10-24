@@ -145,6 +145,18 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
         with Session(get_engine()) as session:
             return list(session.scalars(query.order_by(Vehicle.id)))
 
+    @app.get(
+        "/api/vehicles/{vehicle_id}",
+        response_model=VehicleResponse,
+        dependencies=[Depends(get_current_user)],
+    )
+    def get_vehicle(vehicle_id: int) -> Vehicle:
+        with Session(get_engine()) as session:
+            vehicle = session.get(Vehicle, vehicle_id)
+            if vehicle is None:
+                raise HTTPException(status_code=404, detail="Vehicle not found")
+            return vehicle
+
     @app.post(
         "/api/vehicles",
         status_code=201,
