@@ -118,6 +118,33 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
         with Session(get_engine()) as session:
             return list(session.scalars(select(Vehicle).order_by(Vehicle.id)))
 
+    @app.get(
+        "/api/vehicles/search",
+        response_model=list[VehicleResponse],
+        dependencies=[Depends(get_current_user)],
+    )
+    def search_vehicles(
+        make: str | None = None,
+        model: str | None = None,
+        category: str | None = None,
+        min_price: Decimal | None = None,
+        max_price: Decimal | None = None,
+    ) -> list[Vehicle]:
+        query = select(Vehicle)
+        for column, value in (
+            (Vehicle.make, make),
+            (Vehicle.model, model),
+            (Vehicle.category, category),
+        ):
+            if value:
+                query = query.where(column.icontains(value, autoescape=True))
+        if min_price is not None:
+            query = query.where(Vehicle.price >= min_price)
+        if max_price is not None:
+            query = query.where(Vehicle.price <= max_price)
+        with Session(get_engine()) as session:
+            return list(session.scalars(query.order_by(Vehicle.id)))
+
     @app.post(
         "/api/vehicles",
         status_code=201,
