@@ -5,7 +5,7 @@ from decimal import Decimal
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -201,6 +201,26 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
             session.commit()
             session.refresh(vehicle)
             return vehicle
+
+    @app.post(
+        "/api/vehicles/{vehicle_id}/purchase",
+        response_model=VehicleResponse,
+        dependencies=[Depends(get_current_user)],
+    )
+    def purchase_vehicle(vehicle_id: int) -> Vehicle:
+        with Session(get_engine()) as session:
+            purchased_id = session.scalar(
+                update(Vehicle)
+                .where(Vehicle.id == vehicle_id, Vehicle.quantity > 0)
+                .values(quantity=Vehicle.quantity - 1)
+                .returning(Vehicle.id)
+            )
+            if purchased_id is None:
+                if session.get(Vehicle, vehicle_id) is None:
+                    raise HTTPException(status_code=404, detail="Vehicle not found")
+                raise HTTPException(status_code=409, detail="Vehicle is out of stock")
+            session.commit()
+            return session.get(Vehicle, purchased_id)
 
     return app
 
