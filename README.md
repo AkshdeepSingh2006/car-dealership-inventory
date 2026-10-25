@@ -1,6 +1,6 @@
 # Car Dealership Inventory System
 
-An assessment project for managing a dealership's vehicles and stock. The planned application has a FastAPI API backed by PostgreSQL and a React single-page frontend.
+An assessment project for managing a dealership's vehicles and stock. The application has a FastAPI API backed by PostgreSQL and a React single-page frontend.
 
 ## Project status
 
@@ -38,11 +38,11 @@ Authenticated users can list vehicles with `GET /api/vehicles` and filter with `
 
 Authenticated users can retrieve one vehicle with `GET /api/vehicles/{id}`. Admins can replace a vehicle's details with `PUT /api/vehicles/{id}` using all five vehicle fields, or remove one with `DELETE /api/vehicles/{id}`. Unknown IDs return `404`. Search rejects negative or reversed price bounds with `422`.
 
-An authenticated user can call `POST /api/vehicles/{id}/purchase` to buy one vehicle and decrease stock by one. A zero-stock purchase returns `409`; competing purchases cannot make stock negative. An admin can call `POST /api/vehicles/{id}/restock` with a JSON body such as `{"quantity": 5}` to add a positive whole number to stock.
+An authenticated user can call `POST /api/vehicles/{id}/purchase` to buy one vehicle and decrease stock by one. In the frontend, a vehicle's Purchase button opens a one-car cart for review; stock changes only after **Confirm purchase**. The cart shows a clear success or API error message and does not take payment or create an order record. A zero-stock purchase returns `409`; competing purchases cannot make stock negative. An admin can call `POST /api/vehicles/{id}/restock` with a JSON body such as `{"quantity": 5}` to add a positive whole number to stock.
 
 ## Tests
 
-After dependencies are installed, run `python -m pytest` from `backend` and `npm test -- --run` from `frontend`. Database tests will require `car_dealership_test`; they must never point to the development database.
+After dependencies are installed and both databases have their tables, run `python -m pytest -q --tb=short` from `backend`, then `npm test -- --run` and `npm run build` from `frontend`. The build runs `tsc --noEmit` before Vite. Backend tests write records to `car_dealership_test`; they check that its URL differs from the development URL and that the database name is `car_dealership_test`.
 
 ### Test report
 
@@ -69,13 +69,39 @@ Inventory UI check on 25 October 2026: `npm test -- --run src/App.test.tsx src/I
 
 Sample inventory check on 25 October 2026: `.\.venv\Scripts\python.exe -m pytest -q tests/test_seed_vehicles.py --tb=short` returned **4 passed, 1 dependency deprecation warning**. The seed command added **8 sample vehicles** to the empty development inventory. One test verifies a registered user can list and purchase a seeded vehicle and that the lower stock persists.
 
+Cart UI check on 25 October 2026: `npm test -- --run` returned **14 passed**. `npm run build` passed. Tests cover review before purchase, removal without an API request, successful confirmation, and a failed purchase that keeps the car in the cart.
+
+Final local regression check on 25 October 2026, after adding the whole-workflow API test:
+
+| Command | Observed result |
+| --- | --- |
+| `.\.venv\Scripts\python.exe -m pytest -q --tb=short` in `backend` | 93 passed, 1 Starlette/HTTPX dependency deprecation warning |
+| `.\.venv\Scripts\python.exe -m pytest -q tests/test_full_workflow.py --tb=short` in `backend` | 1 passed, same warning |
+| `npm test -- --run` in `frontend` | 14 passed across 2 files |
+| `npm run build` in `frontend` | TypeScript check and Vite production build passed |
+
+The whole-workflow test uses the real PostgreSQL test database. It covers public registration, login, user/admin access, create, list, combined search, purchase and persisted stock, restock, update, and delete. A browser check against a separate API server pointed at that same test database also completed registration, login, search, cart confirmation, purchase, and admin create/edit/restock/delete. The test database already contained rows from earlier test runs, so the browser check filtered to the relevant vehicles. No payment or order record is part of this kata.
+
 ## Screenshots
 
-Pending the completed application. Add genuine screenshots during final verification.
+These desktop screenshots were captured from the local app by the project owner:
+
+| Screen | Screenshot |
+| --- | --- |
+| Sign-in page | ![Desktop sign-in page](docs/screenshots/desktop-login.png) |
+| Customer showroom | ![Desktop customer showroom](docs/screenshots/desktop-showroom.png) |
+| Vehicle inventory | ![Desktop vehicle inventory](docs/screenshots/desktop-inventory.png) |
+| One-car cart before confirmation | ![Desktop cart review](docs/screenshots/desktop-cart.png) |
+| Purchase confirmation | ![Desktop purchase confirmation](docs/screenshots/desktop-purchase.png) |
+| Admin vehicle controls | ![Desktop admin inventory](docs/screenshots/desktop-admin.png) |
 
 ## My AI Usage
 
-Codex helped plan the architecture and create the initial project foundation. As later milestones are completed, document the exact tools used, how they helped, what was manually reviewed or changed, and a personal reflection on their effect on the workflow. Raw transcripts or public chat links belong in root `PROMPTS.md`.
+I used **Codex** throughout this assessment. It helped turn the brief into a small development plan, scaffold the FastAPI and React projects, draft tests before business features, implement the API and UI in reviewable slices, and investigate test and integration results. I used it again to run the final test commands, walk through the app in a browser, and prepare this report and screenshots. I did not use AI to invent test results or screenshots.
+
+The most useful part of the workflow was the red, green, refactor rhythm. Tests made each endpoint's expected behavior concrete before implementation, and the final browser walkthrough checked that the separate pieces worked together. I reviewed the generated code against the assignment and access rules, kept PostgreSQL as the source of truth for stock, and checked the actual command output and browser state. AI sped up repetitive setup and helped expose integration assumptions, but its suggestions still needed verification: mocked frontend tests alone could not prove the live API flow, and an initial sandbox error was an execution restriction rather than a code failure.
+
+Before submission, I will review this reflection in my own words and check the AI chat links in [PROMPTS.md](PROMPTS.md). AI-assisted commits include the assignment's `Co-authored-by: Codex <codex@openai.com>` trailer after two blank lines.
 
 ## Repository
 
