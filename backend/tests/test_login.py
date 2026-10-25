@@ -91,6 +91,28 @@ def test_valid_login_returns_bearer_token(
     assert response.json()["token_type"] == "bearer"
     assert isinstance(response.json()["access_token"], str)
     assert response.json()["access_token"]
+    assert response.json()["role"] == "user"
+
+
+def test_admin_login_reports_admin_role(
+    client: TestClient, registered_user: dict
+) -> None:
+    from sqlalchemy import update
+    from sqlalchemy.orm import Session
+
+    from app.database import get_engine
+    from app.models import User
+
+    with Session(get_engine()) as session:
+        session.execute(
+            update(User).where(User.id == registered_user["id"]).values(role="admin")
+        )
+        session.commit()
+
+    response = login(client, registered_user)
+
+    assert response.status_code == 200
+    assert response.json()["role"] == "admin"
 
 
 def test_wrong_password_is_rejected(client: TestClient, registered_user: dict) -> None:

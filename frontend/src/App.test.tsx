@@ -69,10 +69,10 @@ test('shows the API error when registration email already exists', async () => {
 })
 
 test('signs in and keeps the access token for later vehicle requests', async () => {
-  const request = vi.fn().mockResolvedValue({
+  const request = vi.fn().mockResolvedValueOnce({
     ok: true,
-    json: async () => ({ access_token: 'test-token', token_type: 'bearer' }),
-  })
+    json: async () => ({ access_token: 'test-token', token_type: 'bearer', role: 'user' }),
+  }).mockResolvedValueOnce({ ok: true, json: async () => [] })
   vi.stubGlobal('fetch', request)
 
   render(<App />)
@@ -95,7 +95,9 @@ test('signs in and keeps the access token for later vehicle requests', async () 
     )
   })
   expect(await screen.findByText('Signed in as buyer@example.com')).toBeTruthy()
+  expect(await screen.findByRole('heading', { name: 'Inventory' })).toBeTruthy()
   expect(sessionStorage.getItem('access_token')).toBe('test-token')
+  expect(sessionStorage.getItem('role')).toBe('user')
 })
 
 test('shows an error for incorrect login credentials', async () => {
