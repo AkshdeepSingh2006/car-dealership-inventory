@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 
 import Inventory from './Inventory'
+import CarArtwork from './CarArtwork'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -83,31 +84,33 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-10 text-slate-900 sm:px-6 sm:py-16">
-      <div className="mx-auto grid max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl lg:grid-cols-2">
-        <section className="flex flex-col justify-between bg-slate-900 px-7 py-10 text-white sm:px-12 sm:py-14">
+    <main className="grid min-h-screen place-items-center bg-[#15191a] px-4 py-8 text-white sm:px-6">
+      <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#202526] shadow-[0_30px_90px_rgba(0,0,0,.3)] lg:grid-cols-[1.05fr_1fr]">
+        <section className="relative flex min-h-[420px] flex-col justify-between overflow-hidden bg-[#2c3333] px-7 py-10 text-white sm:px-12 sm:py-14">
+          <div aria-hidden="true" className="absolute -right-28 -top-28 size-96 rounded-full bg-amber-400/10 blur-3xl" />
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-300">Dealership inventory</p>
-            <h1 className="mt-8 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">Car Dealership Inventory</h1>
-            <p className="mt-6 max-w-md text-lg leading-relaxed text-slate-300">
-              Create an account or sign in to access your dealership.
+            <p className="text-sm font-bold uppercase tracking-[0.25em] text-amber-400">Dealership inventory</p>
+            <h1 className="mt-10 text-4xl font-black leading-tight tracking-tight sm:text-5xl">Car Dealership Inventory</h1>
+            <p className="mt-6 max-w-md text-lg leading-relaxed text-zinc-300">
+              Discover the live collection. Find your next drive.
             </p>
           </div>
-          <p className="mt-12 text-sm text-slate-400">Find your next vehicle in one place.</p>
+          <CarArtwork className="relative -mb-8 mt-6 h-auto w-full max-w-lg self-center drop-shadow-2xl" />
+          <p className="relative mt-6 text-sm text-zinc-400">Find your next vehicle in one place.</p>
         </section>
 
         <section className="flex flex-col justify-center px-7 py-10 sm:px-12 sm:py-14">
           <div>
-              <div className="flex gap-6 border-b border-slate-200">
+              <div className="flex gap-6 border-b border-white/10">
                 <button
-                  className={`border-b-2 pb-3 font-semibold ${mode === 'login' ? 'border-amber-500 text-slate-900' : 'border-transparent text-slate-500'}`}
+                  className={`border-b-2 pb-3 font-semibold ${mode === 'login' ? 'border-amber-400 text-white' : 'border-transparent text-zinc-400'}`}
                   onClick={() => selectMode('login')}
                   type="button"
                 >
                   Log in
                 </button>
                 <button
-                  className={`border-b-2 pb-3 font-semibold ${mode === 'register' ? 'border-amber-500 text-slate-900' : 'border-transparent text-slate-500'}`}
+                  className={`border-b-2 pb-3 font-semibold ${mode === 'register' ? 'border-amber-400 text-white' : 'border-transparent text-zinc-400'}`}
                   onClick={() => selectMode('register')}
                   type="button"
                 >
@@ -116,19 +119,19 @@ export default function App() {
               </div>
 
               <h2 className="mt-8 text-3xl font-bold">{mode === 'register' ? 'Create your account' : 'Sign in to your account'}</h2>
-              <p className="mt-2 text-slate-600">
+              <p className="mt-2 text-zinc-400">
                 {mode === 'register' ? 'Register as a customer to browse and purchase vehicles.' : 'Enter your details to continue.'}
               </p>
 
-              {message && <p className="mt-6 rounded-xl bg-green-50 p-4 text-green-800" role="status">{message}</p>}
-              {error && <p className="mt-6 rounded-xl bg-red-50 p-4 text-red-700" role="alert">{error}</p>}
+              {message && <p className="mt-6 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-emerald-200" role="status">{message}</p>}
+              {error && <p className="mt-6 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-red-200" role="alert">{error}</p>}
 
               <form className="mt-8 space-y-5" onSubmit={submitAuth}>
                 <div>
                   <label className="block text-sm font-semibold" htmlFor="email">Email</label>
                   <input
                     autoComplete="email"
-                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                    className="mt-2 w-full rounded-xl border border-white/15 bg-[#2b3132] px-4 py-3 text-white outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30"
                     id="email"
                     onChange={(event) => setEmail(event.target.value)}
                     required
@@ -140,7 +143,7 @@ export default function App() {
                   <label className="block text-sm font-semibold" htmlFor="password">Password</label>
                   <input
                     autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                    className="mt-2 w-full rounded-xl border border-white/15 bg-[#2b3132] px-4 py-3 text-white outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30"
                     id="password"
                     onChange={(event) => setPassword(event.target.value)}
                     required
@@ -149,7 +152,7 @@ export default function App() {
                   />
                 </div>
                 <button
-                  className="w-full rounded-xl bg-amber-500 px-5 py-3 font-bold text-slate-950 hover:bg-amber-400 disabled:cursor-wait disabled:opacity-60"
+                  className="w-full rounded-xl bg-amber-400 px-5 py-3 font-bold text-[#161a1b] hover:bg-amber-300 disabled:cursor-wait disabled:opacity-60"
                   disabled={pending}
                   type="submit"
                 >

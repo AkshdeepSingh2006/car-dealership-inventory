@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import CarArtwork from './CarArtwork'
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
 
@@ -43,6 +44,7 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
   const [editingId, setEditingId] = useState<number | null>(null)
   const [vehicleForm, setVehicleForm] = useState<VehicleForm>(emptyVehicle)
   const [restockAmounts, setRestockAmounts] = useState<Record<number, string>>({})
+  const [featuredIndex, setFeaturedIndex] = useState(0)
 
   async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
     const response = await fetch(`${apiBaseUrl}${path}`, {
@@ -72,6 +74,12 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
     return () => { active = false }
   }, [token])
 
+  useEffect(() => {
+    if (vehicles.length < 2 || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const timer = window.setInterval(() => setFeaturedIndex((index) => (index + 1) % vehicles.length), 7000)
+    return () => window.clearInterval(timer)
+  }, [vehicles.length])
+
   function updateFilter(name: keyof typeof filters, value: string) {
     setFilters((current) => ({ ...current, [name]: value }))
   }
@@ -88,6 +96,7 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
     try {
       const path = query.size ? `/api/vehicles/search?${query}` : '/api/vehicles'
       setVehicles(await apiRequest<Vehicle[]>(path))
+      setFeaturedIndex(0)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not search vehicles.')
     } finally {
@@ -189,57 +198,108 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
     }
   }
 
-  const inputClass = 'mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200'
-  const buttonClass = 'rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white hover:bg-slate-700 disabled:cursor-wait disabled:opacity-50'
+  const inputClass = 'mt-2 w-full rounded-xl border border-white/15 bg-[#252a2b] px-4 py-3 text-white placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/30'
+  const buttonClass = 'rounded-xl bg-amber-400 px-5 py-3 font-bold text-[#161a1b] transition hover:bg-amber-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-400 disabled:cursor-wait disabled:opacity-50'
+  const featured = vehicles[featuredIndex % vehicles.length]
+  const money = (price: string) => Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-900 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-6xl">
-        <header className="flex flex-col gap-4 border-b border-slate-300 pb-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-amber-700">Car Dealership Inventory</p>
-            <h1 className="mt-2 text-4xl font-bold">Inventory</h1>
-            <p className="mt-2 text-slate-600">Signed in as {email}</p>
+    <main className="min-h-screen bg-[#15191a] px-4 pb-16 text-white sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-7xl">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 py-5">
+          <div className="flex items-center gap-3">
+            <div className="grid size-10 place-items-center rounded-xl border border-amber-400/50 bg-amber-400/10 text-xl font-black text-amber-400">D</div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-amber-400">Dealership</p>
+              <h2 className="text-sm font-semibold tracking-wide text-zinc-300">Inventory</h2>
+            </div>
           </div>
-          <button className={buttonClass} onClick={onSignOut} type="button">Sign out</button>
+          <div className="flex items-center gap-3 sm:gap-5">
+            <span className="text-xs text-zinc-400 sm:text-sm">Signed in as {email}</span>
+            <button className="rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:border-amber-400 hover:text-amber-300" onClick={onSignOut} type="button">Sign out</button>
+          </div>
         </header>
 
-        <form className="mt-8 rounded-2xl bg-white p-5 shadow-sm sm:p-7" onSubmit={search}>
-          <h2 className="text-xl font-bold">Search vehicles</h2>
+        <div className="grid gap-6 py-10 lg:grid-cols-[1fr_1.35fr] lg:items-center lg:py-16">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-400">Your next drive starts here</p>
+            <h1 className="mt-5 max-w-xl text-5xl font-black leading-[1.05] tracking-tight sm:text-6xl">Find a car that <span className="text-amber-400">moves you.</span></h1>
+            <p className="mt-6 max-w-lg text-lg leading-relaxed text-zinc-400">Browse the live inventory, find your fit, and purchase while stock is available.</p>
+            <a className="mt-8 inline-flex rounded-xl border border-white/25 px-5 py-3 font-semibold text-white transition hover:border-amber-400 hover:text-amber-300" href="#inventory">Explore inventory <span aria-hidden="true" className="ml-3">↗</span></a>
+          </div>
+          {featured && !loading && (
+            <section aria-label="Featured vehicle" className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#252b2c] p-6 shadow-[0_24px_70px_rgba(0,0,0,.25)] sm:p-8">
+              <div aria-hidden="true" className="absolute -right-16 -top-20 size-80 rounded-full bg-amber-400/10 blur-3xl" />
+              <div className="relative flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-400">In the spotlight</p>
+                  <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Featured: {featured.make} {featured.model}</h2>
+                  <p className="mt-2 text-sm uppercase tracking-widest text-zinc-400">{featured.category}</p>
+                </div>
+                <span className="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold text-zinc-300">{String(featuredIndex % vehicles.length + 1).padStart(2, '0')} / {String(vehicles.length).padStart(2, '0')}</span>
+              </div>
+              <CarArtwork className="relative mx-auto my-4 h-auto w-full max-w-lg drop-shadow-2xl" />
+              <div className="relative flex flex-wrap items-end justify-between gap-4 border-t border-white/10 pt-5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">Listed price</p>
+                  <p className="mt-1 text-3xl font-black">{money(featured.price)}</p>
+                  <p className="mt-1 text-sm text-zinc-400">{featured.quantity > 0 ? `${featured.quantity} available now` : 'Currently out of stock'}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button aria-label="Previous featured vehicle" className="grid size-11 place-items-center rounded-full border border-white/25 text-xl hover:border-amber-400 hover:text-amber-400" disabled={vehicles.length < 2} onClick={() => setFeaturedIndex((index) => (index - 1 + vehicles.length) % vehicles.length)} type="button">‹</button>
+                  <button aria-label="Next featured vehicle" className="grid size-11 place-items-center rounded-full bg-amber-400 text-xl text-[#15191a] hover:bg-amber-300 disabled:opacity-50" disabled={vehicles.length < 2} onClick={() => setFeaturedIndex((index) => (index + 1) % vehicles.length)} type="button">›</button>
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
+
+        <form className="rounded-[1.75rem] border border-white/10 bg-[#202526] p-5 sm:p-7" onSubmit={search}>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-400">Refine your search</p>
+              <h2 className="mt-2 text-2xl font-bold">Search vehicles</h2>
+            </div>
+            <p className="text-sm text-zinc-400">All vehicles are shown below by default.</p>
+          </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <label className="text-sm font-semibold">Search make
+            <label className="text-sm font-semibold text-zinc-300">Search make
               <input className={inputClass} onChange={(event) => updateFilter('make', event.target.value)} value={filters.make} />
             </label>
-            <label className="text-sm font-semibold">Search model
+            <label className="text-sm font-semibold text-zinc-300">Search model
               <input className={inputClass} onChange={(event) => updateFilter('model', event.target.value)} value={filters.model} />
             </label>
-            <label className="text-sm font-semibold">Search category
+            <label className="text-sm font-semibold text-zinc-300">Search category
               <input className={inputClass} onChange={(event) => updateFilter('category', event.target.value)} value={filters.category} />
             </label>
-            <label className="text-sm font-semibold">Minimum price
+            <label className="text-sm font-semibold text-zinc-300">Minimum price
               <input className={inputClass} min="0" onChange={(event) => updateFilter('min_price', event.target.value)} step="0.01" type="number" value={filters.min_price} />
             </label>
-            <label className="text-sm font-semibold">Maximum price
+            <label className="text-sm font-semibold text-zinc-300">Maximum price
               <input className={inputClass} min="0" onChange={(event) => updateFilter('max_price', event.target.value)} step="0.01" type="number" value={filters.max_price} />
             </label>
           </div>
-          <button className={`${buttonClass} mt-5`} disabled={loading} type="submit">Search vehicles</button>
+          <button className={`${buttonClass} mt-6`} disabled={loading} type="submit">Search vehicles <span aria-hidden="true">→</span></button>
         </form>
 
-        {error && <p className="mt-6 rounded-xl bg-red-50 p-4 text-red-700" role="alert">{error}</p>}
-        {notice && <p className="mt-6 rounded-xl bg-green-50 p-4 text-green-800" role="status">{notice}</p>}
+        {error && <p className="mt-6 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-red-200" role="alert">{error}</p>}
+        {notice && <p className="mt-6 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-emerald-200" role="status">{notice}</p>}
 
-        <div className="mt-8 flex items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold">Available vehicles</h2>
+        <div className="mt-12 flex flex-wrap items-end justify-between gap-4" id="inventory">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-400">The collection</p>
+            <h2 className="mt-2 text-3xl font-black tracking-tight">Available vehicles</h2>
+            {!loading && <p className="mt-2 text-sm text-zinc-400">{vehicles.length} {vehicles.length === 1 ? 'vehicle' : 'vehicles'} in this view</p>}
+          </div>
           {role === 'admin' && <button className={buttonClass} onClick={openCreate} type="button">Add vehicle</button>}
         </div>
 
         {role === 'admin' && formOpen && (
-          <form className="mt-5 rounded-2xl bg-white p-5 shadow-sm sm:p-7" onSubmit={saveVehicle}>
+          <form className="mt-5 rounded-2xl border border-amber-400/30 bg-[#202526] p-5 sm:p-7" onSubmit={saveVehicle}>
             <h3 className="text-xl font-bold">{editingId === null ? 'Add vehicle' : 'Edit vehicle'}</h3>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {(['make', 'model', 'category', 'price', 'quantity'] as const).map((field) => (
-                <label className="text-sm font-semibold" key={field}>
+                <label className="text-sm font-semibold text-zinc-300" key={field}>
                   {field[0].toUpperCase() + field.slice(1)}
                   <input
                     className={inputClass}
@@ -255,43 +315,52 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
             </div>
             <div className="mt-5 flex gap-3">
               <button className={buttonClass} disabled={saving} type="submit">{saving ? 'Saving…' : 'Save vehicle'}</button>
-              <button className="rounded-lg border border-slate-300 px-4 py-2 font-semibold" onClick={() => setFormOpen(false)} type="button">Cancel</button>
+              <button className="rounded-xl border border-white/25 px-4 py-2 font-semibold hover:border-white/50" onClick={() => setFormOpen(false)} type="button">Cancel</button>
             </div>
           </form>
         )}
 
-        {loading ? <p className="mt-8 text-slate-600" role="status">Loading vehicles…</p> : vehicles.length === 0 ? (
-          <p className="mt-8 rounded-xl bg-white p-6 text-slate-600">No vehicles found.</p>
+        {loading ? <p className="mt-8 text-zinc-400" role="status">Loading vehicles…</p> : vehicles.length === 0 ? (
+          <p className="mt-8 rounded-xl border border-white/10 bg-[#202526] p-6 text-zinc-400">No vehicles found.</p>
         ) : (
-          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {vehicles.map((vehicle) => {
+          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {vehicles.map((vehicle, index) => {
               const name = `${vehicle.make} ${vehicle.model}`
               return (
-                <article className="rounded-2xl bg-white p-6 shadow-sm" key={vehicle.id}>
-                  <p className="text-sm font-semibold uppercase tracking-wide text-amber-700">{vehicle.category}</p>
+                <article className="group overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#202526] transition hover:-translate-y-1 hover:border-amber-400/40" key={vehicle.id}>
+                  <div className={`relative h-44 overflow-hidden ${index % 3 === 0 ? 'bg-[#343b3b]' : index % 3 === 1 ? 'bg-[#303735]' : 'bg-[#3b3833]'}`}>
+                    <div aria-hidden="true" className="absolute -right-8 -top-16 size-56 rounded-full bg-amber-400/10 blur-2xl" />
+                    <CarArtwork className="relative mx-auto mt-1 h-44 w-full max-w-xs transition duration-300 group-hover:scale-105" />
+                    <span className={`absolute right-4 top-4 rounded-full px-3 py-1 text-xs font-bold ${vehicle.quantity > 0 ? 'bg-emerald-300 text-[#14211b]' : 'bg-zinc-700 text-zinc-200'}`}>{vehicle.quantity > 0 ? 'Available' : 'Sold out'}</span>
+                  </div>
+                  <div className="p-5 sm:p-6">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">{vehicle.category}</p>
                   <h3 className="mt-2 text-2xl font-bold">{name}</h3>
-                  <p className="mt-3 text-slate-600">Price: {Number(vehicle.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  <p className="mt-1 text-slate-600">{vehicle.quantity} in stock</p>
+                  <div className="mt-5 flex items-end justify-between gap-2 border-t border-white/10 pt-4">
+                    <div><p className="text-xs uppercase tracking-widest text-zinc-500">Price</p><p className="mt-1 text-xl font-black">{money(vehicle.price)}</p></div>
+                    <p className="text-sm text-zinc-400">{vehicle.quantity} in stock</p>
+                  </div>
                   <button
                     className={`${buttonClass} mt-5 w-full`}
                     disabled={vehicle.quantity === 0 || busyId === vehicle.id}
                     onClick={() => purchase(vehicle)}
                     type="button"
-                  >Purchase {name}</button>
+                  >Purchase {name} <span aria-hidden="true">↗</span></button>
                   {role === 'admin' && (
-                    <div className="mt-5 border-t border-slate-200 pt-5">
-                      <div className="flex gap-3">
-                        <button className="font-semibold text-slate-700 hover:underline" onClick={() => openEdit(vehicle)} type="button">Edit {name}</button>
-                        <button className="font-semibold text-red-700 hover:underline" disabled={busyId === vehicle.id} onClick={() => deleteVehicle(vehicle)} type="button">Delete {name}</button>
+                    <div className="mt-5 border-t border-white/10 pt-5">
+                      <div className="flex flex-wrap gap-4">
+                        <button className="font-semibold text-zinc-200 hover:text-amber-400" onClick={() => openEdit(vehicle)} type="button">Edit {name}</button>
+                        <button className="font-semibold text-red-300 hover:text-red-200" disabled={busyId === vehicle.id} onClick={() => deleteVehicle(vehicle)} type="button">Delete {name}</button>
                       </div>
-                      <form className="mt-4 flex items-end gap-2" onSubmit={(event) => restock(event, vehicle)}>
-                        <label className="flex-1 text-sm font-semibold">Restock quantity for {name}
+                      <form className="mt-4 flex flex-wrap items-end gap-2" onSubmit={(event) => restock(event, vehicle)}>
+                        <label className="min-w-28 flex-1 text-sm font-semibold text-zinc-300">Restock quantity for {name}
                           <input className={inputClass} min="1" onChange={(event) => setRestockAmounts((current) => ({ ...current, [vehicle.id]: event.target.value }))} required step="1" type="number" value={restockAmounts[vehicle.id] || '1'} />
                         </label>
-                        <button className={buttonClass} disabled={busyId === vehicle.id} type="submit">Restock {name}</button>
+                        <button className="rounded-xl border border-white/25 px-4 py-3 font-semibold hover:border-amber-400 hover:text-amber-400 disabled:opacity-50" disabled={busyId === vehicle.id} type="submit">Restock {name}</button>
                       </form>
                     </div>
                   )}
+                  </div>
                 </article>
               )
             })}
