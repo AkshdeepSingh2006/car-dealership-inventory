@@ -4,7 +4,7 @@ An assessment project for managing a dealership's vehicles and stock. The planne
 
 ## Project status
 
-The backend supports user registration, JWT login, a local first-admin setup command, authenticated vehicle browsing, search, and purchase, plus admin-only vehicle creation, update, deletion, and restock. The frontend now has registration and login forms. Vehicle browsing and admin screens are the next milestones. See [the development plan](docs/DEVELOPMENT_PLAN.md).
+The backend supports user registration, JWT login, a local first-admin setup command, authenticated vehicle browsing, search, and purchase, plus admin-only vehicle creation, update, deletion, and restock. The frontend now supports registration, login, vehicle browsing and search, purchase, and admin vehicle management. See [the development plan](docs/DEVELOPMENT_PLAN.md).
 
 ## Requirements
 
@@ -18,17 +18,19 @@ The backend supports user registration, JWT login, a local first-admin setup com
 2. Copy `backend/.env.example` to `backend/.env` and fill in your local PostgreSQL username, password, host, and port. Use the development database for `DATABASE_URL` and the test database for `TEST_DATABASE_URL`. Set `JWT_SECRET` to a random secret generated locally, for example with `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Do not commit `backend/.env`.
 3. In `backend`, create a virtual environment, activate it, and run `python -m pip install -e ".[dev]"` after dependency installation is approved.
 4. In `backend`, create the `users` and `vehicles` tables in each database before using the API or running tests. For the development database, run `python -c "from app.models import Base; from app.database import get_engine; Base.metadata.create_all(get_engine())"`. For the test database, run `python -c "from dotenv import dotenv_values; from sqlalchemy import create_engine; from app.models import Base; Base.metadata.create_all(create_engine(dotenv_values('.env')['TEST_DATABASE_URL']))"`. Run `uvicorn app.main:app --reload` to start the API.
-5. Copy `frontend/.env.example` to `frontend/.env`. In `frontend`, run `npm install` after dependency installation is approved, then `npm run dev`. Open the URL printed by Vite (normally `http://localhost:5173`). Choose **Create account** to register, then sign in with the same credentials.
+5. Copy `frontend/.env.example` to `frontend/.env`. In `frontend`, run `npm install` after dependency installation is approved, then `npm run dev`. Open the URL printed by Vite (normally `http://localhost:5173`). Choose **Create account** to register, then sign in with the same credentials to open the inventory.
 
 The frontend defaults to `http://localhost:8000` for API requests and runs at `http://localhost:5173`. The backend allows that origin by default.
 
-Public registration creates regular users. To create the first admin, set `DATABASE_URL` to your development database in `backend/.env`, then run this once from `backend`:
+There are no default admin credentials. Public registration creates regular users. To create the first admin, set `DATABASE_URL` to your development database in `backend/.env`, then run this once from `backend`:
 
 ```powershell
 .\.venv\Scripts\python.exe -m app.admin_setup --email you@example.com
 ```
 
 The command prompts for the password without putting it in shell history. It refuses to change an existing user or create a second admin. Do not run it against the test database. The command changes the database, so get approval before running it.
+
+Log out and sign in with the new admin email and password to see add, edit, delete, and restock controls. The login response supplies the role to the frontend, while the backend continues to enforce admin permission on every protected operation.
 
 Authenticated users can list vehicles with `GET /api/vehicles` and filter with `GET /api/vehicles/search`. Search accepts optional `make`, `model`, `category`, `min_price`, and `max_price` query parameters. Text filters match part of a value without case sensitivity; price bounds are inclusive. Multiple filters combine.
 
@@ -60,6 +62,8 @@ Backend check after vehicle details, update, delete, and search validation: `.\.
 Latest backend check after purchase and restock: `.\.venv\Scripts\python.exe -m pytest -q --tb=short` on 25 October 2026 returned **87 passed, 1 dependency deprecation warning**.
 
 Frontend authentication check on 25 October 2026: `npm test -- --run src/App.test.tsx` returned **5 passed**. `npm run build` also passed.
+
+Inventory UI check on 25 October 2026: `npm test -- --run src/App.test.tsx src/Inventory.test.tsx` returned **11 passed**; `npm run build` passed. The full backend suite returned **88 passed, 1 dependency deprecation warning**.
 
 ## Screenshots
 

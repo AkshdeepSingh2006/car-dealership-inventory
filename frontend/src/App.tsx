@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 
+import Inventory from './Inventory'
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 type AuthMode = 'login' | 'register'
@@ -9,6 +11,7 @@ export default function App() {
   const [email, setEmail] = useState(() => sessionStorage.getItem('email') || '')
   const [password, setPassword] = useState('')
   const [signedIn, setSignedIn] = useState(() => Boolean(sessionStorage.getItem('access_token')))
+  const [role, setRole] = useState<'user' | 'admin'>(() => sessionStorage.getItem('role') === 'admin' ? 'admin' : 'user')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
@@ -46,6 +49,8 @@ export default function App() {
       } else {
         sessionStorage.setItem('access_token', data.access_token)
         sessionStorage.setItem('email', email)
+        sessionStorage.setItem('role', data.role)
+        setRole(data.role === 'admin' ? 'admin' : 'user')
         setSignedIn(true)
       }
     } catch {
@@ -55,13 +60,26 @@ export default function App() {
     }
   }
 
-  function signOut() {
+  function signOut(expired = false) {
     sessionStorage.removeItem('access_token')
     sessionStorage.removeItem('email')
+    sessionStorage.removeItem('role')
     setSignedIn(false)
     setPassword('')
-    setMessage('')
+    setMessage(expired ? 'Session expired. Sign in again.' : '')
     setError('')
+  }
+
+  if (signedIn) {
+    return (
+      <Inventory
+        email={email}
+        onSignOut={() => signOut()}
+        onUnauthorized={() => signOut(true)}
+        role={role}
+        token={sessionStorage.getItem('access_token') || ''}
+      />
+    )
   }
 
   return (
@@ -79,17 +97,7 @@ export default function App() {
         </section>
 
         <section className="flex flex-col justify-center px-7 py-10 sm:px-12 sm:py-14">
-          {signedIn ? (
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-widest text-amber-700">Welcome back</p>
-              <h2 className="mt-3 text-3xl font-bold">You are signed in</h2>
-              <p className="mt-4 text-slate-600">Signed in as {email}</p>
-              <button className="mt-8 rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white hover:bg-slate-700" onClick={signOut} type="button">
-                Sign out
-              </button>
-            </div>
-          ) : (
-            <div>
+          <div>
               <div className="flex gap-6 border-b border-slate-200">
                 <button
                   className={`border-b-2 pb-3 font-semibold ${mode === 'login' ? 'border-amber-500 text-slate-900' : 'border-transparent text-slate-500'}`}
@@ -148,8 +156,7 @@ export default function App() {
                   {pending ? 'Please wait…' : mode === 'register' ? 'Register' : 'Sign in'}
                 </button>
               </form>
-            </div>
-          )}
+          </div>
         </section>
       </div>
     </main>

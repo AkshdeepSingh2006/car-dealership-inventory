@@ -45,6 +45,7 @@ class RegistrationResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+    role: str
 
 
 class VehicleCreate(BaseModel):
@@ -110,7 +111,7 @@ def create_app(frontend_origin: str | None = None) -> FastAPI:
             if user is None or not verify_password(request.password, user.password_hash):
                 raise HTTPException(status_code=401, detail="Invalid email or password")
             return TokenResponse(
-                access_token=create_access_token(user.id), token_type="bearer"
+                access_token=create_access_token(user.id), token_type="bearer", role=user.role
             )
 
     @app.get(
