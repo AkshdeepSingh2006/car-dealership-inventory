@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import CarArtwork from './CarArtwork'
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '')
@@ -45,6 +45,11 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
   const [vehicleForm, setVehicleForm] = useState<VehicleForm>(emptyVehicle)
   const [restockAmounts, setRestockAmounts] = useState<Record<number, string>>({})
   const [featuredIndex, setFeaturedIndex] = useState(0)
+  const [cartVehicle, setCartVehicle] = useState<Vehicle | null>(null)
+  const [cartOpen, setCartOpen] = useState(false)
+  const [purchaseComplete, setPurchaseComplete] = useState<Vehicle | null>(null)
+  const [cartError, setCartError] = useState('')
+  const cartDialog = useRef<HTMLDivElement>(null)
 
   async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
     const response = await fetch(`${apiBaseUrl}${path}`, {
@@ -80,6 +85,13 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
     return () => window.clearInterval(timer)
   }, [vehicles.length])
 
+  useEffect(() => {
+    if (!cartOpen) return
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    cartDialog.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    return () => previousFocus?.focus()
+  }, [cartOpen])
+
   function updateFilter(name: keyof typeof filters, value: string) {
     setFilters((current) => ({ ...current, [name]: value }))
   }
@@ -104,16 +116,50 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
     }
   }
 
-  async function purchase(vehicle: Vehicle) {
+  function addToCart(vehicle: Vehicle) {
+    setCartVehicle(vehicle)
+    setPurchaseComplete(null)
+    setCartError('')
+    setCartOpen(true)
+  }
+
+  function closeCart() {
+    if (busyId !== null) return
+    setCartOpen(false)
+    setPurchaseComplete(null)
+    setCartError('')
+  }
+
+  function handleCartKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      closeCart()
+    }
+    if (event.key !== 'Tab') return
+    const buttons = Array.from(cartDialog.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') || [])
+    if (buttons.length === 0) return
+    if (event.shiftKey && document.activeElement === buttons[0]) {
+      event.preventDefault()
+      buttons[buttons.length - 1].focus()
+    } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) {
+      event.preventDefault()
+      buttons[0].focus()
+    }
+  }
+
+  async function purchase() {
+    if (!cartVehicle) return
+    const vehicle = cartVehicle
     setError('')
-    setNotice('')
+    setCartError('')
     setBusyId(vehicle.id)
     try {
       const updated = await apiRequest<Vehicle>(`/api/vehicles/${vehicle.id}/purchase`, { method: 'POST' })
       setVehicles((items) => items.map((item) => item.id === updated.id ? updated : item))
-      setNotice(`Purchased ${vehicle.make} ${vehicle.model}.`)
+      setCartVehicle(null)
+      setPurchaseComplete(vehicle)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not purchase vehicle.')
+      setCartError(cause instanceof Error ? cause.message : 'Could not purchase vehicle.')
     } finally {
       setBusyId(null)
     }
@@ -204,7 +250,7 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
   const money = (price: string) => Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return (
-    <main className="min-h-screen bg-[#15191a] px-4 pb-16 text-white sm:px-6 lg:px-10">
+    <main className="min-h-screen bg-[#15191a] px-4 pb-28 text-white sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 py-5">
           <div className="flex items-center gap-3">
@@ -343,7 +389,7 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
                   <button
                     className={`${buttonClass} mt-5 w-full`}
                     disabled={vehicle.quantity === 0 || busyId === vehicle.id}
-                    onClick={() => purchase(vehicle)}
+                    onClick={() => addToCart(vehicle)}
                     type="button"
                   >Purchase {name} <span aria-hidden="true">↗</span></button>
                   {role === 'admin' && (
@@ -367,6 +413,67 @@ export default function Inventory({ token, email, role, onSignOut, onUnauthorize
           </div>
         )}
       </div>
+
+      <button
+        className="fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-full border border-amber-300/40 bg-amber-400 px-5 py-3 font-bold text-[#161a1b] shadow-[0_12px_35px_rgba(0,0,0,.4)] transition hover:bg-amber-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:bottom-7 sm:right-7"
+        onClick={() => { setPurchaseComplete(null); setCartError(''); setCartOpen(true) }}
+        type="button"
+      >
+        <svg aria-hidden="true" fill="none" height="20" viewBox="0 0 24 24" width="20"><path d="M3 4h2l2.2 10h11.6l2-7H6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/><circle cx="9" cy="19" fill="currentColor" r="1.5"/><circle cx="18" cy="19" fill="currentColor" r="1.5"/></svg>
+        Cart ({cartVehicle ? 1 : 0})
+      </button>
+
+      {cartOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 px-4 py-6" onMouseDown={(event) => { if (event.target === event.currentTarget) closeCart() }}>
+          <div
+            aria-labelledby="cart-title"
+            aria-modal="true"
+            className="w-full max-w-md rounded-[1.5rem] border border-white/15 bg-[#242a2b] p-6 text-white shadow-2xl sm:p-8"
+            onKeyDown={handleCartKeyDown}
+            ref={cartDialog}
+            role="dialog"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-amber-400">Dealership inventory</p>
+                <h2 className="mt-2 text-2xl font-bold" id="cart-title">{purchaseComplete ? 'Purchase complete' : 'Your cart'}</h2>
+              </div>
+              <button aria-label="Close cart" className="rounded-full border border-white/20 px-3 py-1 text-xl text-zinc-300 hover:border-white/50 hover:text-white disabled:opacity-50" disabled={busyId !== null} onClick={closeCart} type="button">×</button>
+            </div>
+
+            {purchaseComplete ? (
+              <div className="mt-7">
+                <p className="text-lg font-semibold text-emerald-300">You purchased {purchaseComplete.make} {purchaseComplete.model}.</p>
+                <p className="mt-2 text-sm text-zinc-400">The inventory stock has been updated.</p>
+                <button className={`${buttonClass} mt-7 w-full`} onClick={closeCart} type="button">Continue browsing</button>
+              </div>
+            ) : cartVehicle ? (
+              <div className="mt-7">
+                <p className="text-sm text-zinc-400">Review your choice before buying. Your cart holds one vehicle at a time.</p>
+                <div className="mt-5 rounded-2xl border border-white/10 bg-[#303738] p-5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-amber-400">{cartVehicle.category}</p>
+                  <h3 className="mt-2 text-xl font-bold">{cartVehicle.make} {cartVehicle.model}</h3>
+                  <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-4">
+                    <div><p className="text-xs text-zinc-400">Listed price</p><p className="mt-1 text-xl font-bold">{money(cartVehicle.price)}</p></div>
+                    <p className="text-sm text-zinc-400">1 vehicle</p>
+                  </div>
+                </div>
+                {cartError && <p className="mt-4 rounded-xl border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-200" role="alert">{cartError}</p>}
+                <button className={`${buttonClass} mt-6 w-full`} disabled={busyId !== null} onClick={purchase} type="button">{busyId !== null ? 'Purchasing…' : 'Confirm purchase'}</button>
+                <div className="mt-4 flex justify-between gap-4 text-sm">
+                  <button className="font-semibold text-zinc-300 hover:text-white disabled:opacity-50" disabled={busyId !== null} onClick={() => { setCartVehicle(null); closeCart() }} type="button">Remove from cart</button>
+                  <button className="font-semibold text-zinc-300 hover:text-white disabled:opacity-50" disabled={busyId !== null} onClick={closeCart} type="button">Continue browsing</button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-7">
+                <p className="text-zinc-400">Your cart is empty.</p>
+                <button className={`${buttonClass} mt-6 w-full`} onClick={closeCart} type="button">Continue browsing</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   )
 }
