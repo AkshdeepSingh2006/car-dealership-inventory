@@ -6,6 +6,13 @@ An assessment project for managing a dealership's vehicles and stock. The applic
 
 The backend supports user registration, JWT login, a local first-admin setup command, authenticated vehicle browsing, search, and purchase, plus admin-only vehicle creation, update, deletion, and restock. The frontend now supports registration, login, vehicle browsing and search, purchase, and admin vehicle management. See [the development plan](docs/DEVELOPMENT_PLAN.md).
 
+## Live deployment
+
+- Frontend: https://car-dealership-inventory-tau.vercel.app
+- API health check: https://car-dealership-api.vercel.app/api/health
+
+The frontend and API are separate Vercel Hobby projects built from the `frontend` and `backend` directories of this repository. The API uses a Neon PostgreSQL project. Its database connection and JWT signing secret are stored as sensitive Vercel environment variables, outside source control. The live database has the application tables and eight illustrative vehicles. Create a regular account on the frontend to browse them. The first live admin is created with the controlled setup command described below; public registration cannot grant admin access.
+
 ## Requirements
 
 - Python 3.13 or compatible Python 3.11+
@@ -81,6 +88,8 @@ Final local regression check on 25 October 2026, after adding the whole-workflow
 | `npm run build` in `frontend` | TypeScript check and Vite production build passed |
 
 The whole-workflow test uses the real PostgreSQL test database. It covers public registration, login, user/admin access, create, list, combined search, purchase and persisted stock, restock, update, and delete. A browser check against a separate API server pointed at that same test database also completed registration, login, search, cart confirmation, purchase, and admin create/edit/restock/delete. The test database already contained rows from earlier test runs, so the browser check filtered to the relevant vehicles. No payment or order record is part of this kata.
+
+Live deployment checks on 25 October 2026: the frontend loaded its sign-in page; `GET /api/health` returned `{"status":"ok"}`; the API's CORS preflight allowed the exact frontend origin; and a login attempt for a nonexistent account returned `401` with the expected invalid-credentials response. The Neon setup command created the tables and inserted eight sample vehicles.
 
 ## Screenshots
 
