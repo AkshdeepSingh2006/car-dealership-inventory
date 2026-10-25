@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 
 import App from './App'
@@ -43,6 +43,24 @@ test('loads vehicles with the token and hides admin controls from users', async 
   )
   expect(screen.queryByRole('button', { name: 'Add vehicle' })).toBeNull()
   expect(screen.queryByRole('button', { name: 'Edit Toyota Corolla' })).toBeNull()
+})
+
+test('features real API vehicles and lets users browse them without hiding the inventory', async () => {
+  signInAs('user')
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response([
+    corolla,
+    { ...corolla, id: 13, model: 'Prius', quantity: 0 },
+  ])))
+
+  render(<App />)
+
+  const feature = await screen.findByRole('region', { name: 'Featured vehicle' })
+  expect(within(feature).getByText('Featured: Toyota Corolla')).toBeTruthy()
+  fireEvent.click(within(feature).getByRole('button', { name: 'Next featured vehicle' }))
+  expect(within(feature).getByText('Featured: Toyota Prius')).toBeTruthy()
+  expect(screen.getByText('Toyota Corolla')).toBeTruthy()
+  expect(screen.getByText('Toyota Prius')).toBeTruthy()
+  expect((screen.getByRole('button', { name: 'Purchase Toyota Prius' }) as HTMLButtonElement).disabled).toBe(true)
 })
 
 test('sends combined search filters to the API', async () => {
