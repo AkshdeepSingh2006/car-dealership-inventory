@@ -86,7 +86,7 @@ test('sends combined search filters to the API', async () => {
   expect(await screen.findByText('No vehicles found.')).toBeTruthy()
 })
 
-test('purchases one vehicle and disables purchase at zero stock', async () => {
+test('reviews one vehicle in the cart before purchasing and disables zero stock', async () => {
   signInAs('user')
   const request = vi.fn()
     .mockResolvedValueOnce(response([corolla, { ...corolla, id: 13, model: 'Prius', quantity: 0 }]))
@@ -97,6 +97,14 @@ test('purchases one vehicle and disables purchase at zero stock', async () => {
   await screen.findByText('Toyota Corolla')
   expect((screen.getByRole('button', { name: 'Purchase Toyota Prius' }) as HTMLButtonElement).disabled).toBe(true)
   fireEvent.click(screen.getByRole('button', { name: 'Purchase Toyota Corolla' }))
+  expect(request).toHaveBeenCalledTimes(1)
+  const cart = screen.getByRole('dialog', { name: 'Your cart' })
+  expect(within(cart).getByText('Toyota Corolla')).toBeTruthy()
+  expect(within(cart).getByText('25,000.00')).toBeTruthy()
+  fireEvent.click(within(cart).getByRole('button', { name: 'Continue browsing' }))
+  expect(request).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Cart (1)' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'Your cart' })).getByRole('button', { name: 'Confirm purchase' }))
 
   await waitFor(() => {
     expect(request).toHaveBeenLastCalledWith(
@@ -105,6 +113,41 @@ test('purchases one vehicle and disables purchase at zero stock', async () => {
     )
   })
   expect(await screen.findByText('1 in stock')).toBeTruthy()
+  expect(within(screen.getByRole('dialog', { name: 'Purchase complete' })).getByText('You purchased Toyota Corolla.')).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Cart (0)' })).toBeTruthy()
+})
+
+test('removing the selected car does not purchase it', async () => {
+  signInAs('user')
+  const request = vi.fn().mockResolvedValue(response([corolla]))
+  vi.stubGlobal('fetch', request)
+
+  render(<App />)
+  await screen.findByText('Toyota Corolla')
+  fireEvent.click(screen.getByRole('button', { name: 'Purchase Toyota Corolla' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'Your cart' })).getByRole('button', { name: 'Remove from cart' }))
+
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.getByRole('button', { name: 'Cart (0)' })).toBeTruthy()
+  expect(request).toHaveBeenCalledTimes(1)
+  expect(screen.getByText('2 in stock')).toBeTruthy()
+})
+
+test('shows a failed purchase in the cart and keeps the selection', async () => {
+  signInAs('user')
+  const request = vi.fn()
+    .mockResolvedValueOnce(response([corolla]))
+    .mockResolvedValueOnce(response({ detail: 'Vehicle is out of stock' }, false))
+  vi.stubGlobal('fetch', request)
+
+  render(<App />)
+  await screen.findByText('Toyota Corolla')
+  fireEvent.click(screen.getByRole('button', { name: 'Purchase Toyota Corolla' }))
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'Your cart' })).getByRole('button', { name: 'Confirm purchase' }))
+
+  expect(await within(screen.getByRole('dialog', { name: 'Your cart' })).findByRole('alert')).toHaveProperty('textContent', 'Vehicle is out of stock')
+  expect(screen.getByRole('button', { name: 'Cart (1)' })).toBeTruthy()
+  expect(screen.getByText('2 in stock')).toBeTruthy()
 })
 
 test('admin can create a vehicle through the API', async () => {
