@@ -4,7 +4,7 @@ An assessment project for managing a dealership's vehicles and stock. The planne
 
 ## Project status
 
-The backend supports user registration, JWT login, a local first-admin setup command, authenticated vehicle browsing, search, and purchase, plus admin-only vehicle creation, update, deletion, and restock. The frontend is still planned. See [the development plan](docs/DEVELOPMENT_PLAN.md).
+The backend supports user registration, JWT login, a local first-admin setup command, authenticated vehicle browsing, search, and purchase, plus admin-only vehicle creation, update, deletion, and restock. The frontend now has registration and login forms. Vehicle browsing and admin screens are the next milestones. See [the development plan](docs/DEVELOPMENT_PLAN.md).
 
 ## Requirements
 
@@ -18,7 +18,7 @@ The backend supports user registration, JWT login, a local first-admin setup com
 2. Copy `backend/.env.example` to `backend/.env` and fill in your local PostgreSQL username, password, host, and port. Use the development database for `DATABASE_URL` and the test database for `TEST_DATABASE_URL`. Set `JWT_SECRET` to a random secret generated locally, for example with `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Do not commit `backend/.env`.
 3. In `backend`, create a virtual environment, activate it, and run `python -m pip install -e ".[dev]"` after dependency installation is approved.
 4. In `backend`, create the `users` and `vehicles` tables in each database before using the API or running tests. For the development database, run `python -c "from app.models import Base; from app.database import get_engine; Base.metadata.create_all(get_engine())"`. For the test database, run `python -c "from dotenv import dotenv_values; from sqlalchemy import create_engine; from app.models import Base; Base.metadata.create_all(create_engine(dotenv_values('.env')['TEST_DATABASE_URL']))"`. Run `uvicorn app.main:app --reload` to start the API.
-5. Copy `frontend/.env.example` to `frontend/.env`. In `frontend`, run `npm install` after dependency installation is approved, then `npm run dev`.
+5. Copy `frontend/.env.example` to `frontend/.env`. In `frontend`, run `npm install` after dependency installation is approved, then `npm run dev`. Open the URL printed by Vite (normally `http://localhost:5173`). Choose **Create account** to register, then sign in with the same credentials.
 
 The frontend defaults to `http://localhost:8000` for API requests and runs at `http://localhost:5173`. The backend allows that origin by default.
 
@@ -58,6 +58,8 @@ Backend check after first-admin setup, listing, and search: `.\.venv\Scripts\pyt
 Backend check after vehicle details, update, delete, and search validation: `.\.venv\Scripts\python.exe -m pytest -q --tb=short` on 25 October 2026 returned **72 passed, 1 dependency deprecation warning**.
 
 Latest backend check after purchase and restock: `.\.venv\Scripts\python.exe -m pytest -q --tb=short` on 25 October 2026 returned **87 passed, 1 dependency deprecation warning**.
+
+Frontend authentication check on 25 October 2026: `npm test -- --run src/App.test.tsx` returned **5 passed**. `npm run build` also passed.
 
 ## Screenshots
 
