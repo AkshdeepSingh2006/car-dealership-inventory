@@ -32,6 +32,8 @@ The command prompts for the password without putting it in shell history. It ref
 
 Log out and sign in with the new admin email and password to see add, edit, delete, and restock controls. The login response supplies the role to the frontend, while the backend continues to enforce admin permission on every protected operation.
 
+To make a fresh development inventory useful immediately, run `.\.venv\Scripts\python.exe -m app.seed_vehicles` from `backend` in PowerShell. It adds eight illustrative vehicles as real rows in the `vehicles` table only when `car_dealership_dev` has no vehicles; rerunning it or using it with existing inventory leaves that inventory unchanged. The frontend fetches these rows through the same protected API used for admin-created cars. Users can purchase them, which persists the reduced stock, and admins can edit, delete, or restock them. The prices are demo values, not live offers. All signed-in users see these cars on the inventory page without searching first.
+
 Authenticated users can list vehicles with `GET /api/vehicles` and filter with `GET /api/vehicles/search`. Search accepts optional `make`, `model`, `category`, `min_price`, and `max_price` query parameters. Text filters match part of a value without case sensitivity; price bounds are inclusive. Multiple filters combine.
 
 Authenticated users can retrieve one vehicle with `GET /api/vehicles/{id}`. Admins can replace a vehicle's details with `PUT /api/vehicles/{id}` using all five vehicle fields, or remove one with `DELETE /api/vehicles/{id}`. Unknown IDs return `404`. Search rejects negative or reversed price bounds with `422`.
@@ -64,6 +66,8 @@ Latest backend check after purchase and restock: `.\.venv\Scripts\python.exe -m 
 Frontend authentication check on 25 October 2026: `npm test -- --run src/App.test.tsx` returned **5 passed**. `npm run build` also passed.
 
 Inventory UI check on 25 October 2026: `npm test -- --run src/App.test.tsx src/Inventory.test.tsx` returned **11 passed**; `npm run build` passed. The full backend suite returned **88 passed, 1 dependency deprecation warning**.
+
+Sample inventory check on 25 October 2026: `.\.venv\Scripts\python.exe -m pytest -q tests/test_seed_vehicles.py --tb=short` returned **4 passed, 1 dependency deprecation warning**. The seed command added **8 sample vehicles** to the empty development inventory. One test verifies a registered user can list and purchase a seeded vehicle and that the lower stock persists.
 
 ## Screenshots
 
